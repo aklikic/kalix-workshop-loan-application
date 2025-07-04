@@ -1,33 +1,34 @@
 package io.kx.loanapp.api;
 
-import com.google.protobuf.Empty;
 import io.kx.Main;
-import io.kx.loanapp.domain.LoanAppDomain;
-import kalix.javasdk.testkit.junit.jupiter.KalixTestKitExtension;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
+import kalix.javasdk.testkit.junit.KalixTestKitResource;
+import org.junit.ClassRule;
+import org.junit.Test;
 
-import static java.util.concurrent.TimeUnit.*;
+import java.util.UUID;
+
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 // This class was initially generated based on the .proto definition by Kalix tooling.
 //
 // As long as this file exists it will not be overwritten: you can maintain it yourself,
 // or delete it so it is regenerated as needed.
 
-// Example of an integration test calling our service via the Kalix Runtime
+// Example of an integration test calling our service via the Kalix proxy
 // Run all test classes ending with "IntegrationTest" using `mvn verify -Pit`
 public class LoanAppEntityIntegrationTest {
 
   /**
-   * The test kit starts both the service container and the Kalix Runtime.
+   * The test kit starts both the service container and the Kalix proxy.
    */
-  @RegisterExtension
-  public static final KalixTestKitExtension testKit =
-    new KalixTestKitExtension(Main.createKalix());
+  @ClassRule
+  public static final KalixTestKitResource testKit =
+    new KalixTestKitResource(Main.createKalix());
 
   /**
-   * Use the generated gRPC client to call the service through the Kalix Runtime.
+   * Use the generated gRPC client to call the service through the Kalix proxy.
    */
   private final LoanAppService client;
 
@@ -35,35 +36,56 @@ public class LoanAppEntityIntegrationTest {
     client = testKit.getGrpcClient(LoanAppService.class);
   }
 
+  private LoanAppApi.SubmitCommand create(String loanAppId, long monthlyIncomeCents, long loanAmountCents, int loanDurationMonths){
+    return LoanAppApi.SubmitCommand.newBuilder()
+            .setLoanAppId(loanAppId)
+            .setClientId(UUID.randomUUID().toString())
+            .setClientMonthlyIncomeCents(monthlyIncomeCents)
+            .setLoanAmountCents(loanAmountCents)
+            .setLoanDurationMonths(loanDurationMonths)
+            .build();
+  }
+  private LoanAppApi.SubmitCommand create(String loanAppId){
+    return create(loanAppId,1000,500,24);
+  }
+
+  private void assertGet(String loanAppId, LoanAppApi.LoanAppStatus status) throws Exception{
+    LoanAppApi.LoanAppState loanApp = client.get(LoanAppApi.GetCommand.newBuilder().setLoanAppId(loanAppId).build()).toCompletableFuture().get(5,SECONDS);
+    assertNotNull(loanApp);
+    assertEquals(status,loanApp.getStatus());
+  }
   @Test
-  @Disabled("to be implemented")
-  public void testSubmit() throws Exception {
-    // TODO: set fields in command, and provide assertions to match replies
-    // client.submit(LoanAppApi.SubmitCommand.newBuilder().build())
-    //         .toCompletableFuture().get(5, SECONDS);
+  public void submitSuccess() throws Exception {
+
+    String loanAppId = UUID.randomUUID().toString();
+    client.submit(create(loanAppId)).toCompletableFuture().get(5, SECONDS); //note use get for every call to get sequential deterministic results
+    assertGet(loanAppId, LoanAppApi.LoanAppStatus.STATUS_IN_REVIEW);
   }
 
   @Test
-  @Disabled("to be implemented")
-  public void testGet() throws Exception {
-    // TODO: set fields in command, and provide assertions to match replies
-    // client.get(LoanAppApi.GetCommand.newBuilder().build())
-    //         .toCompletableFuture().get(5, SECONDS);
+  public void submitOnAlreadySubmittedEntity() throws Exception {
+    String loanAppId = UUID.randomUUID().toString();
+    client.submit(create(loanAppId)).toCompletableFuture().get(5, SECONDS);
+    assertGet(loanAppId, LoanAppApi.LoanAppStatus.STATUS_IN_REVIEW);
+    client.submit(create(loanAppId)).toCompletableFuture().get(5, SECONDS);
+    assertGet(loanAppId, LoanAppApi.LoanAppStatus.STATUS_IN_REVIEW);
   }
 
   @Test
-  @Disabled("to be implemented")
-  public void testApprove() throws Exception {
-    // TODO: set fields in command, and provide assertions to match replies
-    // client.approve(LoanAppApi.ApproveCommand.newBuilder().build())
-    //         .toCompletableFuture().get(5, SECONDS);
+  public void approveSuccess() throws Exception {
+    String loanAppId = UUID.randomUUID().toString();
+    client.submit(create(loanAppId)).toCompletableFuture().get(5, SECONDS);
+    assertGet(loanAppId, LoanAppApi.LoanAppStatus.STATUS_IN_REVIEW);
+    client.approve(LoanAppApi.ApproveCommand.newBuilder().setLoanAppId(loanAppId).build()).toCompletableFuture().get(5, SECONDS);
+    assertGet(loanAppId, LoanAppApi.LoanAppStatus.STATUS_APPROVED);
   }
 
   @Test
-  @Disabled("to be implemented")
-  public void testDecline() throws Exception {
-    // TODO: set fields in command, and provide assertions to match replies
-    // client.decline(LoanAppApi.DeclineCommand.newBuilder().build())
-    //         .toCompletableFuture().get(5, SECONDS);
+  public void declineSuccess() throws Exception {
+    String loanAppId = UUID.randomUUID().toString();
+    client.submit(create(loanAppId)).toCompletableFuture().get(5, SECONDS);
+    assertGet(loanAppId, LoanAppApi.LoanAppStatus.STATUS_IN_REVIEW);
+    client.decline(LoanAppApi.DeclineCommand.newBuilder().setLoanAppId(loanAppId).build()).toCompletableFuture().get(5, SECONDS);
+    assertGet(loanAppId, LoanAppApi.LoanAppStatus.STATUS_DECLINED);
   }
 }

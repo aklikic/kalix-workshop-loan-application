@@ -1,6 +1,7 @@
 package io.kx;
 
 import io.kx.loanapp.domain.LoanAppEntity;
+import io.kx.loanproc.domain.LoanProcEntity;
 import kalix.javasdk.Kalix;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,8 +20,7 @@ public final class Main {
     // and is kept up-to-date with any changes in your protobuf definitions.
     // If you prefer, you may remove this and manually register these components in a
     // `new Kalix()` instance.
-    return KalixFactory.withComponents(
-      LoanAppEntity::new);
+    return KalixFactory.withComponents(LoanAppEntity::new, LoanProcEntity::new);
   }
 
   public static void main(String[] args) throws Exception {

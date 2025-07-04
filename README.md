@@ -116,7 +116,7 @@ mvn compile kalix:runAll
 
 Start the local console:
 ```shell
-akka local run
+akka local console
 ```
 
 ## Test service locally
@@ -202,6 +202,157 @@ curl -XGET https://<EXPOSED HOST>/loanapp/1 -H "Content-Type: application/json"
 Approve:
 ```
 curl -XPUT https://<EXPOSED HOST>/loanapp/1/approve -H "Content-Type: application/json"
+```
+
+## Explore Akka console
+(Akka console)[https://console.akka.io/]
+
+
+# Loan application processing service
+
+## Define API data structure and endpoints (GRPC)
+Create `io/kx/loanproc/api` folder in `src/main/proto` folder. <br>
+Create `loan_proc_api.proto` in `src/main/proto/io/kx/loanproc/api` folder. <br>
+Create: <br>
+- state
+- commands
+- service
+
+<i><b>Tip</b></i>: Check content in `step-2` git branch
+
+## Define persistence (domain) data structure  (GRPC)
+Create `io/kx/loanproc/domain` folder in `src/main/proto` folder. <br>
+Create `loan_proc_domain.proto` in `src/main/proto/io/kx/loanproc/domain` folder. <br>
+Create: <br>
+- state
+- events
+
+<i><b>Tip</b></i>: Check content in `step-2` git branch
+## Add codegen annotations in API data structure and endpoints (GRPC)
+In `src/main/proto/io/kx/loanproc/api/loan_proc_api.proto` add AkkaServerless codegen annotations to GRPC service
+```protobuf
+service LoanProcService {
+  option (kalix.service).acl.allow = { principal: ALL };
+  option (kalix.codegen) = {
+    event_sourced_entity: {
+      name: "io.kx.loanproc.domain.LoanProcEntity"
+      type_id: "loanproc"
+      state: "io.kx.loanproc.domain.LoanProcDomainState"
+      events: [
+        "io.kx.loanproc.domain.ReadyForReview",
+        "io.kx.loanproc.domain.Approved",
+        "io.kx.loanproc.domain.Declined"
+      ]
+    }
+  };
+}
+```
+<i><b>Note</b></i>: `event_sourced_entity.name` has to be a unique name
+## Compile maven project to trigger codegen
+```shell
+mvn compile
+```
+
+Compile will generate help classes (`target/generated-*` folders) and skeleton classes<br><br>
+Business logic:<br>
+`src/main/java/io/kx/loanproc/domain/LoanProcEntity`<br>
+<br>
+Unit tests:<br>
+`src/test/java/io/kx/loanproc/domain/LoanProcEntityTest`<br>
+Integration tests:<br>
+`src/it/java/io/kx/loanproc/api/LoanProcEntityIntegrationTest`<br>
+
+<i><b>Tip</b></i>: If required reimport project in your IDE
+
+## Update Main class
+In `src/main/java/io/kx/Main` you need to add new entity component (`LoanProcEntity`):
+```java
+return KalixFactory.withComponents(LoanAppEntity::new, LoanProcEntity::new);
+```
+## Implement entity skeleton class
+Implement `src/main/java/io/kx/loanproc/domain/LoanProcEntity` class<br>
+<i><b>Tip</b></i>: Check content in `step-2` git branch
+
+## Implement unit test
+Implement `src/test/java/io/kx/loanproc/domain/LoanProcEntityTest` class<br>
+<i><b>Tip</b></i>: Check content in `step-2` git branch
+
+## Run unit test
+```shell
+mvn test
+```
+## Implement integration test
+Implement `src/it/java/io/kx/loanproc/api/LoanProcEntityIntegrationTest` class<br>
+<i><b>Tip</b></i>: Check content in `step-2` git branch
+
+## Run integration test
+```shell
+mvn -P verify
+```
+
+<i><b>Note</b></i>: Integration tests uses [TestContainers](https://www.testcontainers.org/) to span integration environment so it could require some time to download required containers.
+Also make sure docker is running.
+
+## Run locally
+Start the service:
+```shell
+mvn compile kalix:runAll
+```
+
+Start the local console:
+```shell
+akka local console
+```
+
+## Test service locally
+Start processing:
+```shell
+curl -XPOST -d '{
+  "client_monthly_income_cents": 60000,
+  "loan_amount_cents": 20000,
+  "loan_duration_months": 12
+}' http://localhost:9000/loanproc/1 -H "Content-Type: application/json"
+```
+
+Get loan processing:
+```shell
+curl -XGET http://localhost:9000/loanproc/1 -H "Content-Type: application/json"
+```
+
+Approve:
+```shell
+curl -XPUT http://localhost:9000/loanproc/1/approve -H "Content-Type: application/json"
+```
+
+## Package
+```
+mvn install
+```
+<i><b>Note</b></i>:Copy the image tag to be used in deploy
+## Deploy (update) service
+```
+akka service deploy loan-application <IMAGE TAG> --push --classic
+```
+<i><b>Note</b></i>: Replace `IMAGE TAG` with your image tag from `mvn install`
+
+## Test service in production
+Start processing:
+```
+curl -XPOST -d '{
+  "client_monthly_income_cents": 60000,
+  "loan_amount_cents": 20000,
+  "loan_duration_months": 12
+}' https://<EXPOSED HOST>/loanproc/1 -H "Content-Type: application/json"
+```
+
+Get loan processing:
+```
+curl -XGET https://<EXPOSED HOST>/loanproc/1 -H "Content-Type: application/json"
+```
+
+Approve:
+```
+curl -XPUT https://<EXPOSED HOST>/loanproc/1/approve -H "Content-Type: application/json"
 ```
 
 ## Explore Akka console
