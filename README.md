@@ -357,3 +357,80 @@ curl -XPUT https://<EXPOSED HOST>/loanproc/1/approve -H "Content-Type: applicati
 
 ## Explore Akka console
 (Akka console)[https://console.akka.io/]
+
+
+
+## Create a view
+Create `io/kx/loanproc/view` folder in `src/main/proto` folder. <br>
+Create `loan_proc_by_status_view.proto` in `src/main/proto/io/kx/loanproc/view` folder. <br>
+Create: <br>
+- state
+- request/response
+- service
+
+<i><b>Note</b></i>: `SELECT` result alias `AS results` needs to correspond with `GetLoanProcByStatusResponse` parameter name `repeated LoanProcViewState results`<br>
+<i><b>Note</b></i>: Currently `enums` are not supported as query parameters ([issue 1141](https://github.com/lightbend/kalix-proxy/issues/1141)) so enum `number` value is used for query<br>
+<i><b>Tip</b></i>: Check content in `step-3` git branch
+
+## Compile maven project to trigger codegen for views
+```shell
+mvn compile
+```
+
+Compile will generate help classes (`target/generated-*` folders) and skeleton classes<br><br>
+
+`src/main/java/io/kx/loanproc/view/LoanProcByStatusView`<br>
+
+In `src/main/java/io/kx/Main` you need to add view (`LoanProcByStatusView`) initialization:
+```java
+    return KalixFactory.withComponents(LoanAppEntity::new, LoanProcEntity::new, LoanProcByStatusView::new);
+```
+
+## Implement view LoanProcByStatusView skeleton class
+Implement `src/main/java/io/kx/loanproc/view/LoanProcByStatusView` class<br>
+<i><b>Tip</b></i>: Check content in `step-3` git branch
+
+## Unit test
+
+Because of the nature of views only Integration tests are done.
+
+## Create integration tests for view
+1. Copy `io/kx/loanproc/view/LoanProcEntityIntegrationTest` class to `io/kx/loanproc/view/LoanProcViewIntegrationTest`
+2. Remove all methods annotated with `@Test`
+3. Add test case
+```java
+@Test
+public void viewTest() throws Exception {
+...  
+```
+<i><b>Tip</b></i>: Check content in `step-3` git branch
+
+## Run integration test
+```shell
+mvn verify -Pit
+```
+
+<i><b>Note</b></i>: Integration tests uses [TestContainers](https://www.testcontainers.org/) to span integration environment so it could require some time to download required containers.
+Also make sure docker is running.
+
+
+## Package
+```
+mvn install
+```
+<i><b>Note</b></i>:Copy the image tag to be used in deploy
+## Deploy (update) service
+```
+akka service deploy loan-application <IMAGE TAG> --push --classic
+```
+<i><b>Note</b></i>: Replace `IMAGE TAG` with your image tag from `mvn install`
+
+
+## Test service in production
+Get loan processing by status:
+```
+curl -XPOST -d {"status_id":2} https://<EXPOSED HOST>/loanproc/views/by-status -H "Content-Type: application/json"
+```
+
+## Explore Akka console
+(Akka console)[https://console.akka.io/]
