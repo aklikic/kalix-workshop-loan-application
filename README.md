@@ -53,10 +53,11 @@ Create: <br>
 In `src/main/proto/io/kx/loanapp/api/loan_app_api.proto` add Kalix codegen annotations to GRPC service
 ```protobuf
 service LoanAppService {
+  option (kalix.service).acl.allow = { principal: ALL };
   option (kalix.codegen) = {
     event_sourced_entity: {
       name: "io.kx.loanapp.domain.LoanAppEntity"
-      entity_type: "loanapp"
+      type_id: "loanapp"
       state: "io.kx.loanapp.domain.LoanAppDomainState"
       events: [
         "io.kx.loanapp.domain.Submitted",
