@@ -1,6 +1,8 @@
 package io.kx;
 
+import io.kx.loanapp.action.LoanAppEventingToProcAction;
 import io.kx.loanapp.domain.LoanAppEntity;
+import io.kx.loanproc.action.LoanProcEventingToAppAction;
 import io.kx.loanproc.domain.LoanProcEntity;
 import io.kx.loanproc.view.LoanProcByStatusView;
 import kalix.javasdk.Kalix;
@@ -21,7 +23,7 @@ public final class Main {
     // and is kept up-to-date with any changes in your protobuf definitions.
     // If you prefer, you may remove this and manually register these components in a
     // `new Kalix()` instance.
-    return KalixFactory.withComponents(LoanAppEntity::new, LoanProcEntity::new, LoanProcByStatusView::new);
+    return KalixFactory.withComponents(LoanAppEntity::new, LoanProcEntity::new, LoanAppEventingToProcAction::new, LoanProcByStatusView::new, LoanProcEventingToAppAction::new);
   }
 
   public static void main(String[] args) throws Exception {

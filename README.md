@@ -141,7 +141,7 @@ curl -XPUT http://localhost:9000/loanapp/1/approve -H "Content-Type: application
 ```
 
 ## Package
-```
+```shell
 mvn install
 ```
 <i><b>Note</b></i>:Copy the image tag to be used in deploy
@@ -150,44 +150,44 @@ mvn install
 
 ## Akka CLI
 Login (need to be logged in the Akka Console in web browser):
-```
+```shell
 akka auth login
 ```
 Create new project:
-```
+```shell
 akka projects new workshop --region <REGION> --organization <ORGANIZATION>
 ```
 <i><b>Note</b></i>: Replace `<REGION>` with a desired region and `<ORGANIZATION>` your organization 
 
 Set project:
-```
+```shell
 akka config set project workshop
 ```
 ## Deploy service
-```
+```shell
 akka service deploy loan-application <IMAGE TAG> --push --classic
 ```
 <i><b>Note</b></i>: Replace `IMAGE TAG` with your image tag from `mvn install`
 
 List services:
-```
+```shell
 akka services list
 ```
-```
+```text
 NAME               AGE   INSTANCES   STATUS   IMAGE TAG                     
 loan-application   46s   3           Ready    1.0-SNAPSHOT-20250704154412 
 ```
 ## Expose service
-```
+```shell
 akka services expose loan-application
 ```
 Result:
-`
+```text
 Service 'loan-application' was successfully exposed at: <EXPOSED HOST>
-`
+```
 ## Test service in production
 Submit loan application:
-```
+```shell
 curl -XPOST -d '{
   "client_id": "12345",
   "client_monthly_income_cents": 60000,
@@ -196,11 +196,11 @@ curl -XPOST -d '{
 }' https://<EXPOSED HOST>/loanapp/1 -H "Content-Type: application/json"
 ```
 Get loan application:
-```
+```shell
 curl -XGET https://<EXPOSED HOST>/loanapp/1 -H "Content-Type: application/json"
 ```
 Approve:
-```
+```shell
 curl -XPUT https://<EXPOSED HOST>/loanapp/1/approve -H "Content-Type: application/json"
 ```
 
@@ -325,19 +325,19 @@ curl -XPUT http://localhost:9000/loanproc/1/approve -H "Content-Type: applicatio
 ```
 
 ## Package
-```
+```shell
 mvn install
 ```
 <i><b>Note</b></i>:Copy the image tag to be used in deploy
 ## Deploy (update) service
-```
+```shell
 akka service deploy loan-application <IMAGE TAG> --push --classic
 ```
 <i><b>Note</b></i>: Replace `IMAGE TAG` with your image tag from `mvn install`
 
 ## Test service in production
 Start processing:
-```
+```shell
 curl -XPOST -d '{
   "client_monthly_income_cents": 60000,
   "loan_amount_cents": 20000,
@@ -346,12 +346,12 @@ curl -XPOST -d '{
 ```
 
 Get loan processing:
-```
+```shell
 curl -XGET https://<EXPOSED HOST>/loanproc/1 -H "Content-Type: application/json"
 ```
 
 Approve:
-```
+```shell
 curl -XPUT https://<EXPOSED HOST>/loanproc/1/approve -H "Content-Type: application/json"
 ```
 
@@ -415,12 +415,12 @@ Also make sure docker is running.
 
 
 ## Package
-```
+```shell
 mvn install
 ```
 <i><b>Note</b></i>:Copy the image tag to be used in deploy
 ## Deploy (update) service
-```
+```shell
 akka service deploy loan-application <IMAGE TAG> --push --classic
 ```
 <i><b>Note</b></i>: Replace `IMAGE TAG` with your image tag from `mvn install`
@@ -428,9 +428,93 @@ akka service deploy loan-application <IMAGE TAG> --push --classic
 
 ## Test service in production
 Get loan processing by status:
-```
+```shell
 curl -XPOST -d {"status_id":2} https://<EXPOSED HOST>/loanproc/views/by-status -H "Content-Type: application/json"
 ```
 
 ## Explore Akka console
 (Akka console)[https://console.akka.io/]
+
+
+# Event driven communication
+
+## Action for submitted event (Loan application service -> Loan application processing service)
+Create `io/kx/loanapp/action` folder in `src/main/proto` folder. <br>
+Create `loan_app_eventing_to_proc_action.proto` in `src/main/proto/io/kx/loanapp/action` folder. <br>
+Create: <br>
+- service
+
+<i><b>Tip</b></i>: Check content in `step-4` git branch
+
+## Action for approved & declined processing event (Loan application processing service -> Loan application service)
+Create `io/kx/loanproc/action` folder in `src/main/proto` folder. <br>
+Create `loan_proc_eventing_to_app_action.proto` in `src/main/proto/io/kx/loanproc/action` folder. <br>
+Create: <br>
+- service
+
+<i><b>Tip</b></i>: Check content in `step-4` git branch
+
+## Compile maven project to trigger codegen for action
+```shell
+mvn compile
+```
+Compile will generate help classes (`target/generated-*` folders) and skeleton classes<br><br>
+
+`src/main/java/io/kx/loanapp/action/LoanAppEventingToProcAction`<br>
+`src/main/java/io/kx/loanproc/action/LoanProcEventingToAppAction`<br>
+
+In `src/main/java/io/kx/Main` you need to add view (`LoanAppEventingToProcAction` & `LoanProcEventingToAppAction`) initialization:
+```java
+    return KalixFactory.withComponents(LoanAppEntity::new, LoanProcEntity::new, LoanAppEventingToProcAction::new, LoanProcByStatusView::new, LoanProcEventingToAppAction::new);
+```
+## Implement view LoanAppEventingToProcAction skeleton class
+Implement `src/main/java/io/kx/loanapp/action/LoanAppEventingToProcAction` class<br>
+<i><b>Tip</b></i>: Check content in `step-4` git branch
+
+## Implement view LoanProcEventingToAppAction skeleton class
+Implement `src/main/java/io/kx/loanproc/action/LoanProcEventingToAppAction` class<br>
+<i><b>Tip</b></i>: Check content in `step-4` git branch
+
+## System integration tests (multiple services)
+In `src/it/java/io/kx` folder create new class `SystemIntegrationTest`.
+<i><b>Tip</b></i>: Check content in `step-4` git branch
+
+## Run integration test
+```shell
+mvn verify -Pit
+```
+
+<i><b>Note</b></i>: Integration tests uses [TestContainers](https://www.testcontainers.org/) to span integration environment so it could require some time to download required containers.
+Also make sure docker is running.
+
+## Package
+```shell
+mvn install
+```
+<i><b>Note</b></i>:Copy the image tag to be used in deploy
+## Deploy (update) service
+```shell
+akka service deploy loan-application <IMAGE TAG> --push --classic
+```
+<i><b>Note</b></i>: Replace `IMAGE TAG` with your image tag from `mvn install`
+
+## Test service in production
+Submit loan application:
+```shell
+curl -XPOST -d '{
+  "client_id": "123456",
+  "client_monthly_income_cents": 60000,
+  "loan_amount_cents": 20000,
+  "loan_duration_months": 12
+}' https://<EXPOSED HOST>/loanapp/2 -H "Content-Type: application/json"
+```
+Approve loan processing:
+```shell
+curl -XPUT -d '{
+"reviewer_id": "9999"
+}' https://<EXPOSED HOST>/loanproc/2/approve -H "Content-Type: application/json"
+```
+Get loan application :
+```shell
+curl -XGET https://<EXPOSED HOST>/loanapp/2 -H "Content-Type: application/json"
+```
