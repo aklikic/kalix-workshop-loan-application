@@ -3,16 +3,14 @@
 ## Prerequisite
 Java 11 or later<br>
 Apache Maven 3.6 or higher<br>
-[Kalix CLI](https://docs.kalix.io/kalix/install-kalix.html) <br>
-Docker 20.10.8 or higher (client and daemon)<br>
-Container registry with public access (like Docker Hub)<br>
-Access to the `gcr.io/kalix-public` container registry<br>
+[Akka CLI](https://doc.akka.io/operations/cli/installation.html) <br>
+Docker 20.10.14 or higher (client and daemon)<br>
 cURL<br>
 IDE / editor<br>
 
 ## Create kickstart maven project
 
-```
+```shell
 mvn archetype:generate \
 -DarchetypeGroupId=io.kalix \
 -DarchetypeArtifactId=kalix-maven-archetype \
@@ -53,11 +51,9 @@ Create: <br>
 <i><b>Tip</b></i>: Check content in `step-1` git branch
 ## Add codegen annotations in API data structure and endpoints (GRPC)
 In `src/main/proto/io/kx/loanapp/api/loan_app_api.proto` add Kalix codegen annotations to GRPC service
-```
+```protobuf
 service LoanAppService {
-```
-```
-option (kalix.codegen) = {
+  option (kalix.codegen) = {
     event_sourced_entity: {
       name: "io.kx.loanapp.domain.LoanAppEntity"
       entity_type: "loanapp"
@@ -69,13 +65,11 @@ option (kalix.codegen) = {
       ]
     }
   };
-```
-```
-...
+}
 ```
 <i><b>Note</b></i>: `event_sourced_entity.name` has to be a unique name
 ## Compile maven project to trigger codegen
-```
+```shell
 mvn compile
 ```
 Compile will generate help classes (`target/generated-*` folders) and skeleton classes<br><br>
@@ -98,7 +92,7 @@ Implement  `src/test/java/io/kx/loanapp/domain/LoanAppEntityTest` class<br>
 <i><b>Tip</b></i>: Check content in `step-1` git branch
 
 ## Run unit test
-```
+```shell
 mvn test
 ```
 ## Implement integration test
@@ -106,7 +100,7 @@ Implement `src/it/java/io/kx/loanapp/api/LoanAppEntityIntegrationTest` class<br>
 <i><b>Tip</b></i>: Check content in `step-1` git branch
 
 ## Run integration test
-```
+```shell
 mvn -Pit verify
 ```
 
@@ -114,22 +108,19 @@ mvn -Pit verify
 Also make sure docker is running.
 
 ## Run locally
-
-In project root folder there is `docker-compose.yaml` for running `kalix proxy` and (optionally) `google pubsub emulator`.
-<i><b>Tip</b></i>: If you do not require google pubsub emulator then comment it out in `docker-compose.yaml`
-```
-docker-compose up
-```
-
 Start the service:
-
+```shell
+mvn compile kalix:runAll
 ```
-mvn compile exec:exec
+
+Start the local console:
+```shell
+akka local run
 ```
 
 ## Test service locally
 Submit loan application:
-```
+```shell
 curl -XPOST -d '{
   "client_id": "12345",
   "client_monthly_income_cents": 60000,
@@ -139,77 +130,59 @@ curl -XPOST -d '{
 ```
 
 Get loan application:
-```
+```shell
 curl -XGET http://localhost:9000/loanapp/1 -H "Content-Type: application/json"
 ```
 
 Approve:
-```
+```shell
 curl -XPUT http://localhost:9000/loanapp/1/approve -H "Content-Type: application/json"
 ```
 
 ## Package
+```
+mvn install
+```
+<i><b>Note</b></i>:Copy the image tag to be used in deploy
+## Register for Akka account or Login with an existing account
+[Register](https://console.akka.io/register)
 
-<i><b>Note</b></i>: Make sure you have updated `dockerImage` in your `pom.xml` and that your local docker is authenticated with your docker container registry
-
+## Akka CLI
+Login (need to be logged in the Akka Console in web browser):
 ```
-mvn package
-```
-
-<br><br>
-
-Push docker image to docker repository:
-```
-mvn docker:push
-```
-
-## Register for Kalix account or Login with existing account
-[Register](https://console.kalix.io/register)
-
-## kalix CLI
-Validate version:
-```
-kalix version
-```
-Login (need to be logged in the Kalix Console in web browser):
-```
-kalix auth login
+akka auth login
 ```
 Create new project:
 ```
-kalix projects new loan-application --region <REGION>
+akka projects new workshop --region <REGION> --organization <ORGANIZATION>
 ```
-<i><b>Note</b></i>: Replace `<REGION>` with desired region
+<i><b>Note</b></i>: Replace `<REGION>` with a desired region and `<ORGANIZATION>` your organization 
 
-List projects:
-```
-kalix projects list
-```
 Set project:
 ```
-kalix config set project loan-application
+akka config set project workshop
 ```
 ## Deploy service
 ```
-kalix service deploy loan-application my-docker-repo/loan-application:1.0-SNAPSHOT
+akka service deploy loan-application <IMAGE TAG> --push --classic
 ```
-<i><b>Note</b></i>: Replace `my-docker-repo` with your docker repository
+<i><b>Note</b></i>: Replace `IMAGE TAG` with your image tag from `mvn install`
 
 List services:
 ```
-kalix services list
+akka services list
 ```
 ```
-NAME               AGE    REPLICAS   STATUS   DESCRIPTION   
-loan-application   102s   1          Ready  
+NAME               AGE   INSTANCES   STATUS   IMAGE TAG                     
+loan-application   46s   3           Ready    1.0-SNAPSHOT-20250704154412 
 ```
 ## Expose service
 ```
-kalix services expose loan-application
+akka services expose loan-application
 ```
 Result:
 `
-Service 'loan-application' was successfully exposed at: <some_host>.us-east1.kalix.app
+Service 'loan-application' was successfully exposed at: <EXPOSED HOST>
 `
 ## Test service in production
 Submit loan application:
@@ -219,13 +192,16 @@ curl -XPOST -d '{
   "client_monthly_income_cents": 60000,
   "loan_amount_cents": 20000,
   "loan_duration_months": 12
-}' https://<somehost>.kalix.app/loanapp/1 -H "Content-Type: application/json"
+}' https://<EXPOSED HOST>/loanapp/1 -H "Content-Type: application/json"
 ```
 Get loan application:
 ```
-curl -XGET https://<somehost>.kalix.app/loanapp/1 -H "Content-Type: application/json"
+curl -XGET https://<EXPOSED HOST>/loanapp/1 -H "Content-Type: application/json"
 ```
 Approve:
 ```
-curl -XPUT https://<somehost>.kalix.app/loanapp/1/approve -H "Content-Type: application/json"
+curl -XPUT https://<EXPOSED HOST>/loanapp/1/approve -H "Content-Type: application/json"
 ```
+
+## Explore Akka console
+(Akka console)[https://console.akka.io/]

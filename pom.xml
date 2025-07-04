@@ -16,9 +16,9 @@
     <properties>
 
     <!-- For Docker setup see https://docs.kalix.io/operations/container-registries.html -->
-<!--    <kalixContainerRegistry>kcr.us-east-1.kalix.io</kalixContainerRegistry>-->
-<!--    <kalixOrganization>lightbend-org</kalixOrganization>-->
-<!--    <mainClass>io.kx.Main</mainClass>-->
+    <kalixContainerRegistry>kcr.us-east-1.kalix.io</kalixContainerRegistry>
+    <kalixOrganization>lightbend-eng</kalixOrganization>
+    <mainClass>io.kx.Main</mainClass>
   </properties>
 
   <dependencies>

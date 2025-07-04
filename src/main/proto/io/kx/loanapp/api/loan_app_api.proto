@@ -32,7 +32,7 @@ message LoanAppState {
 }
 
 message SubmitCommand {
-  string loan_app_id = 1 [(kalix.field).entity_key = true];
+  string loan_app_id = 1 [(kalix.field).id = true];
 
   string client_id = 2;
   int64 client_monthly_income_cents = 6;
@@ -42,23 +42,24 @@ message SubmitCommand {
 }
 
 message GetCommand {
-  string loan_app_id = 1 [(kalix.field).entity_key = true];
+  string loan_app_id = 1 [(kalix.field).id = true];
 }
 
 message ApproveCommand  {
-  string loan_app_id = 1 [(kalix.field).entity_key = true];
+  string loan_app_id = 1 [(kalix.field).id = true];
 }
 
 message DeclineCommand  {
-  string loan_app_id = 1 [(kalix.field).entity_key = true];
+  string loan_app_id = 1 [(kalix.field).id = true];
   string reason = 2;
 }
 
 service LoanAppService {
+  option (kalix.service).acl.allow = { principal: ALL };
   option (kalix.codegen) = {
     event_sourced_entity: {
       name: "io.kx.loanapp.domain.LoanAppEntity"
-      entity_type: "loanapp"
+      type_id: "loanapp"
       state: "io.kx.loanapp.domain.LoanAppDomainState"
       events: [
         "io.kx.loanapp.domain.Submitted",
