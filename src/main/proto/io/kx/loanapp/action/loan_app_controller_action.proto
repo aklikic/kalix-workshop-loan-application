@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package io.kx.loanapp.action;
+
+import "google/api/annotations.proto";
+import "google/protobuf/any.proto";
+import "google/protobuf/empty.proto";
+import "kalix/annotations.proto";
+
+import "io/kx/loanapp/api/loan_app_api.proto";
+
+option java_outer_classname = "LoanAppApiControllerHandler";
+
+message SubmitCommand {
+  string client_id = 2;
+  int64 client_monthly_income_cents = 6;
+
+  int64 loan_amount_cents = 7;
+  int32 loan_duration_months = 8;
+}
+
+message SubmitResponse{
+  string loan_app_id = 1;
+}
+
+service LoanAppApiController {
+  option (kalix.codegen) = {
+    action: {}
+  };
+  rpc Submit(SubmitCommand) returns (SubmitResponse) {
+    option (google.api.http) = {
+      post: "/api/loanapp"
+      body: "*"
+    };
+  }
+  rpc Get(api.GetCommand) returns (api.LoanAppState) {
+    option (google.api.http) = {
+      get: "/api/loanapp/{loan_app_id}"
+    };
+  }
+
+  rpc Approve(api.ApproveCommand) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      put: "/api/loanapp/{loan_app_id}/approve"
+    };
+  }
+
+  rpc Decline(api.DeclineCommand) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      put: "/api/loanapp/{loan_app_id}/decline"
+      body: "*"
+    };
+  }
+}

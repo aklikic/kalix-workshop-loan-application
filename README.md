@@ -602,3 +602,81 @@ mvn install
 akka service deploy loan-application <IMAGE TAG> --push --classic
 ```
 <i><b>Note</b></i>: Replace `IMAGE TAG` with your image tag from `mvn install`
+
+
+# Action API Controller 
+
+## Action configuring timer
+Create `io/kx/loanapp/action` folder in `src/main/proto` folder. <br>
+Create `loan_proc_controller_action.proto` in `src/main/proto/io/kx/loanapp/action` folder. <br>
+Create: <br>
+- service
+
+<i><b>Tip</b></i>: Check content in `step-6` git branch
+
+## Compile maven project to trigger codegen for action
+```shell
+mvn compile
+```
+Compile will generate help classes (`target/generated-*` folders) and skeleton classes<br><br>
+
+`src/main/java/io/kx/loanapp/action/LoanAppApiControllerAction`<br>
+
+In `src/main/java/io/kx/Main` you need to add action (`LoanAppApiControllerAction`) initialization:
+```java
+return KalixFactory.withComponents(LoanAppEntity::new, LoanProcEntity::new,  LoanAppApiControllerAction::new, LoanAppEventingToProcAction::new, LoanProcByStatusView::new, LoanProcEventingToAppAction::new, LoanProcTimeoutAction::new);
+```
+## Implement view LoanAppApiControllerAction skeleton class
+Implement `src/main/java/io/kx/loanapp/action/LoanAppApiControllerAction` class<br>
+<i><b>Tip</b></i>: Check content in `step-6` git branch
+
+
+## Run locally
+Start the service:
+```shell
+mvn compile kalix:runAll
+```
+
+Start the local console:
+```shell
+akka local console
+```
+
+## Test service locally
+Submit loan application:
+```shell
+curl -XPOST -d '{
+  "client_id": "12345",
+  "client_monthly_income_cents": 60000,
+  "loan_amount_cents": 20000,
+  "loan_duration_months": 12
+}' http://localhost:9000/api/loanapp -H "Content-Type: application/json"
+```
+Check the response for `loanAppId`.
+Get loan application:
+```shell
+curl -XGET http://localhost:9000/api/loanapp/[loanAppId from ] -H "Content-Type: application/json"
+```
+
+Approve:
+```shell
+curl -XPUT http://localhost:9000/api/loanapp/1/approve -H "Content-Type: application/json"
+```
+
+## Package
+```shell
+mvn install
+```
+<i><b>Note</b></i>:Copy the image tag to be used in deploy
+
+
+## Package
+```shell
+mvn install
+```
+<i><b>Note</b></i>:Copy the image tag to be used in deploy
+## Deploy (update) service
+```shell
+akka service deploy loan-application <IMAGE TAG> --push --classic
+```
+<i><b>Note</b></i>: Replace `IMAGE TAG` with your image tag from `mvn install`
