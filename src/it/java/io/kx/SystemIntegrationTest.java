@@ -93,4 +93,15 @@ public class SystemIntegrationTest {
         Thread.sleep(10000);
         assertLoanAppGet(loanAppId, LoanAppApi.LoanAppStatus.STATUS_DECLINED);
     }
+
+    @Test
+    public void timeout() throws Exception {
+        String loanAppId = UUID.randomUUID().toString();
+        loanAppClient.submit(create(loanAppId)).toCompletableFuture().get(5, SECONDS); //note use get for every call to get sequential deterministic results
+        assertLoanAppGet(loanAppId, LoanAppApi.LoanAppStatus.STATUS_IN_REVIEW);
+        Thread.sleep(10000);
+        assertLoanProcGet(loanAppId,LoanProcApi.LoanProcStatus.STATUS_READY_FOR_REVIEW);
+        Thread.sleep(10000);
+        assertLoanAppGet(loanAppId, LoanAppApi.LoanAppStatus.STATUS_DECLINED);
+    }
 }

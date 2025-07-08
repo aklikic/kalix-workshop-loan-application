@@ -518,3 +518,87 @@ Get loan application :
 ```shell
 curl -XGET https://<EXPOSED HOST>/loanapp/2 -H "Content-Type: application/json"
 ```
+
+
+
+# Timer
+
+## Action configuring timer
+Create `io/kx/loanproc/action` folder in `src/main/proto` folder. <br>
+Create `loan_proc_timeout_action.proto` in `src/main/proto/io/kx/loanproc/action` folder. <br>
+Create: <br>
+- service
+
+<i><b>Tip</b></i>: Check content in `step-5` git branch
+
+## Compile maven project to trigger codegen for action
+```shell
+mvn compile
+```
+Compile will generate help classes (`target/generated-*` folders) and skeleton classes<br><br>
+
+`src/main/java/io/kx/loanproc/action/LoanProcTimeoutAction`<br>
+
+In `src/main/java/io/kx/Main` you need to add view (`LoanProcTimeoutAction`) initialization:
+```java
+return KalixFactory.withComponents(LoanAppEntity::new, LoanProcEntity::new, LoanAppEventingToProcAction::new, LoanProcByStatusView::new, LoanProcEventingToAppAction::new, LoanProcTimeoutAction::new);
+```
+## Implement view LoanProcTimeoutAction skeleton class
+Implement `src/main/java/io/kx/loanproc/action/LoanProcTimeoutAction` class<br>
+<i><b>Tip</b></i>: Check content in `step-5` git branch
+
+## System integration tests (multiple services)
+In `SystemIntegrationTest` add `timeout` test..
+<i><b>Tip</b></i>: Check content in `step-5` git branch
+
+## Run integration test
+```shell
+mvn verify -Pit
+```
+
+<i><b>Note</b></i>: Integration tests uses [TestContainers](https://www.testcontainers.org/) to span integration environment so it could require some time to download required containers.
+Also make sure docker is running.
+
+## Run locally
+Start the service:
+```shell
+mvn compile kalix:runAll
+```
+
+Start the local console:
+```shell
+akka local console
+```
+
+## Test service locally
+Start processing:
+```shell
+curl -XPOST -d '{
+  "client_monthly_income_cents": 60000,
+  "loan_amount_cents": 20000,
+  "loan_duration_months": 12
+}' http://localhost:9000/loanproc/1 -H "Content-Type: application/json"
+```
+
+Get loan processing (after 5 seconds):
+```shell
+curl -XGET http://localhost:9000/loanproc/1 -H "Content-Type: application/json"
+```
+
+## Package
+```shell
+mvn install
+```
+<i><b>Note</b></i>:Copy the image tag to be used in deploy
+
+
+## Package
+```shell
+mvn install
+```
+<i><b>Note</b></i>:Copy the image tag to be used in deploy
+## Deploy (update) service
+```shell
+akka service deploy loan-application <IMAGE TAG> --push --classic
+```
+<i><b>Note</b></i>: Replace `IMAGE TAG` with your image tag from `mvn install`
